@@ -18,14 +18,34 @@ AplayerCharacter::AplayerCharacter() {
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
 	SpringArm->SetupAttachment(RootComponent);
 	SpringArm->SetHiddenInGame(false);
+	SpringArm->TargetArmLength = 300.f;
+	SpringArm->SetRelativeLocation(FVector(0.f, 0.f, 90.f));
 
 
 	TP_Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("TP_Camera"));
 	TP_Camera->AttachToComponent(SpringArm, FAttachmentTransformRules::KeepRelativeTransform);
+	TP_Camera->SetRelativeLocation(FVector(20.f, 40.f, 0.f));
+	TP_Camera->PostProcessSettings.bOverride_MotionBlurAmount = 0;
+	TP_Camera->PostProcessSettings.MotionBlurAmount = 0.f;
+	TP_Camera->PostProcessSettings.bOverride_MotionBlurMax = 0;
+	TP_Camera->PostProcessSettings.MotionBlurMax = 0.f;
+	TP_Camera->PostProcessSettings.bOverride_MotionBlurPerObjectSize = 0;
+	TP_Camera->PostProcessSettings.MotionBlurPerObjectSize = 0.f;
 
 	FP_Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("FP_Camera"));
 	FP_Camera->SetupAttachment(RootComponent);
+	FP_Camera->SetRelativeLocation(FVector(0.f, 0.f, 65.f));
+	FP_Camera->PostProcessSettings.bOverride_MotionBlurAmount = 0;
+	FP_Camera->PostProcessSettings.MotionBlurAmount = 0.f;
+	FP_Camera->PostProcessSettings.bOverride_MotionBlurMax = 0;
+	FP_Camera->PostProcessSettings.MotionBlurMax = 0.f;
+	FP_Camera->PostProcessSettings.bOverride_MotionBlurPerObjectSize = 0;
+	FP_Camera->PostProcessSettings.MotionBlurPerObjectSize = 0.f;
 	
+
+	this->AutoPossessPlayer = EAutoReceiveInput::Player0;
+	this->AIControllerClass = APlayerController::StaticClass();
+
 
 	this->GetCapsuleComponent()->SetVisibility(true);
 	this->GetCapsuleComponent()->SetHiddenInGame(false);
@@ -46,15 +66,7 @@ void AplayerCharacter::BeginPlay() {
 	Super::BeginPlay();
 	movementDirection = FVector(0.0f, 0.0f, 0.0f);
 
-	SpringArm->AddLocalOffset(FVector(0.f, 0.f, 50.f));
-	SpringArm->TargetArmLength = 300.f;
-	SpringArm->AddLocalRotation(FRotator(-10.f, 0.f, -10.f));
-
-	//FP_Camera->AddRelativeLocation(FVector(0.f, 100.f, 0.f));
-	//FP_Camera->SetWorldLocation(GetCapsuleComponent()->GetComponentLocation());
-	FP_Camera->SetRelativeLocation(FVector(0.f, 0.f, 65.f));
 	ActivateCam();
-
 	sens = 1;
 }
 
@@ -64,11 +76,10 @@ void AplayerCharacter::Tick(float DeltaTime) {
 
 	rawInput = FRotator(mouseYValue, mouseXValue, 0.0f);
 	rawInputX = FRotator(0.0f, mouseXValue, 0.0f);
+	
 
 	FRotator sensInput = (rawInput * sens);
 
-	
-	UE_LOG(LogTemp, Log, TEXT("%f"), FP_Camera->GetComponentRotation().Roll);
 
 	if (sensInput.Pitch + FP_Camera->GetComponentRotation().Pitch > 85) {
 		sensInput.Pitch = 0;
@@ -98,7 +109,51 @@ void AplayerCharacter::Tick(float DeltaTime) {
 
 	AddMovementInput(movementDirection, 1.0f, false);
 	
-	//UE_LOG(LogTemp, Log, TEXT("%s"), *movementDirection.ToString());
+	//Re-initialize hit info
+	FHitResult jumpRayReturn(ForceInit);
+
+	jumpRayStart = GetCapsuleComponent()->GetComponentLocation();
+	jumpRayEnd = FVector(GetCapsuleComponent()->GetComponentLocation() + FVector(0.f, 0.f, ((0 - GetCapsuleComponent()->GetScaledCapsuleHalfHeight() - 22))));
+	collisionChannel = ECollisionChannel::ECC_Visibility;
+
+	jumpCastBool = GetWorld()->LineTraceSingleByChannel(jumpRayReturn, jumpRayStart, jumpRayEnd, collisionChannel);
+
+
+	TArray<FInputActionKeyMapping> sprintInputMapping = this->GetWorld()->GetFirstPlayerController()->PlayerInput->GetKeysForAction(TEXT("sprintKey"));
+	for (int i = 0; i < sprintInputMapping.Num(); i++) {
+
+		if (this->GetWorld()->GetFirstPlayerController()->IsInputKeyDown(sprintInputMapping[i].Key)) {
+			currentSprintKey = sprintInputMapping[i].Key;
+			isSprintPressed = true;
+		}
+	}
+
+	TArray<FInputAxisKeyMapping> forwardInputMapping = this->GetWorld()->GetFirstPlayerController()->PlayerInput->GetKeysForAxis(TEXT("ForwardKey"));
+	for (int i = 0; i < forwardInputMapping.Num(); i++) {
+
+		if (this->GetWorld()->GetFirstPlayerController()->IsInputKeyDown(forwardInputMapping[i].Key)) {
+			currentForwardKey = forwardInputMapping[i].Key; //this is either W or S.
+		}
+	}
+
+
+	
+	if (jumpCastBool) {
+		jumpCount = 1;
+
+		if (this->GetWorld()->GetFirstPlayerController()->GetInputKeyTimeDown(currentSprintKey) > 0.1f) {
+			sprintPressed = true;
+		} else {
+			sprintPressed = false;
+		}
+	}
+
+	if (0.3f <= this->InputComponent->GetAxisValue(FName(TEXT("ForwardKey")))) {} else {
+		sprintPressed = false;
+	}
+
+	//UE_LOG(LogTemp, Log, TEXT("%s"), *jumpRayReturn.GetActor()->GetName());
+
 }
 
 void AplayerCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) {
@@ -117,6 +172,9 @@ void AplayerCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerIn
 
 	PlayerInputComponent->BindAction("toggleCamera", IE_Pressed, this, &AplayerCharacter::ToggleCameraPressed);
 	PlayerInputComponent->BindAction("toggleCamera", IE_Released, this, &AplayerCharacter::ToggleCameraReleased);
+
+	PlayerInputComponent->BindAction("jumpKey", IE_Pressed, this, &AplayerCharacter::JumpKeyPressed);
+	PlayerInputComponent->BindAction("jumpKey", IE_Released, this, &AplayerCharacter::JumpKeyReleased);
 }
 
 
@@ -178,5 +236,21 @@ void AplayerCharacter::ToggleCameraPressed() {
 }
 
 void AplayerCharacter::ToggleCameraReleased() {
+
+}
+
+void AplayerCharacter::JumpKeyPressed() {
+	if (jumpCastBool) {
+		jumpCount = 1;
+		this->LaunchCharacter(FVector(0.f, 0.f, jumpPower), false, false);
+	} else {
+		jumpCount++;
+		if (jumpCount <= 2) {
+			this->LaunchCharacter(FVector(0.f, 0.f, jumpPower), false, false);
+		}
+	}
+}
+
+void AplayerCharacter::JumpKeyReleased() {
 
 }
