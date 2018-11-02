@@ -33,7 +33,6 @@ public:
 	int jumpCount = 0;
 	FKey currentSprintKey;
 	FKey currentForwardKey;
-	bool isSprintPressed = false;
 
 
 

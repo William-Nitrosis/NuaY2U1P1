@@ -42,6 +42,7 @@ AplayerCharacter::AplayerCharacter() {
 	FP_Camera->PostProcessSettings.bOverride_MotionBlurPerObjectSize = 0;
 	FP_Camera->PostProcessSettings.MotionBlurPerObjectSize = 0.f;
 	
+	GetCharacterMovement()->AirControl = 1.f;
 
 	this->AutoPossessPlayer = EAutoReceiveInput::Player0;
 	this->AIControllerClass = APlayerController::StaticClass();
@@ -68,6 +69,22 @@ void AplayerCharacter::BeginPlay() {
 
 	ActivateCam();
 	sens = 1;
+
+	TArray<FInputActionKeyMapping> sprintInputMapping = this->GetWorld()->GetFirstPlayerController()->PlayerInput->GetKeysForAction(TEXT("sprintKey"));
+	for (int i = 0; i < sprintInputMapping.Num(); i++) {
+
+		if (this->GetWorld()->GetFirstPlayerController()->IsInputKeyDown(sprintInputMapping[i].Key)) {
+			currentSprintKey = sprintInputMapping[i].Key;
+		}
+	}
+
+	TArray<FInputAxisKeyMapping> forwardInputMapping = this->GetWorld()->GetFirstPlayerController()->PlayerInput->GetKeysForAxis(TEXT("ForwardKey"));
+	for (int i = 0; i < forwardInputMapping.Num(); i++) {
+
+		if (this->GetWorld()->GetFirstPlayerController()->IsInputKeyDown(forwardInputMapping[i].Key)) {
+			currentForwardKey = forwardInputMapping[i].Key; //this is either W or S.
+		}
+	}
 }
 
 // Called every frame
@@ -118,26 +135,6 @@ void AplayerCharacter::Tick(float DeltaTime) {
 
 	jumpCastBool = GetWorld()->LineTraceSingleByChannel(jumpRayReturn, jumpRayStart, jumpRayEnd, collisionChannel);
 
-
-	TArray<FInputActionKeyMapping> sprintInputMapping = this->GetWorld()->GetFirstPlayerController()->PlayerInput->GetKeysForAction(TEXT("sprintKey"));
-	for (int i = 0; i < sprintInputMapping.Num(); i++) {
-
-		if (this->GetWorld()->GetFirstPlayerController()->IsInputKeyDown(sprintInputMapping[i].Key)) {
-			currentSprintKey = sprintInputMapping[i].Key;
-			isSprintPressed = true;
-		}
-	}
-
-	TArray<FInputAxisKeyMapping> forwardInputMapping = this->GetWorld()->GetFirstPlayerController()->PlayerInput->GetKeysForAxis(TEXT("ForwardKey"));
-	for (int i = 0; i < forwardInputMapping.Num(); i++) {
-
-		if (this->GetWorld()->GetFirstPlayerController()->IsInputKeyDown(forwardInputMapping[i].Key)) {
-			currentForwardKey = forwardInputMapping[i].Key; //this is either W or S.
-		}
-	}
-
-
-	
 	if (jumpCastBool) {
 		jumpCount = 1;
 
@@ -147,8 +144,11 @@ void AplayerCharacter::Tick(float DeltaTime) {
 			sprintPressed = false;
 		}
 	}
+	else {
+		sprintPressed = false;
+	}
 
-	if (0.3f <= this->InputComponent->GetAxisValue(FName(TEXT("ForwardKey")))) {} else {
+	if (0.1f <= this->InputComponent->GetAxisValue(FName(TEXT("ForwardKey")))) {} else {
 		sprintPressed = false;
 	}
 
