@@ -70,21 +70,7 @@ void AplayerCharacter::BeginPlay() {
 	ActivateCam();
 	sens = 1;
 
-	TArray<FInputActionKeyMapping> sprintInputMapping = this->GetWorld()->GetFirstPlayerController()->PlayerInput->GetKeysForAction(TEXT("sprintKey"));
-	for (int i = 0; i < sprintInputMapping.Num(); i++) {
 
-		if (this->GetWorld()->GetFirstPlayerController()->IsInputKeyDown(sprintInputMapping[i].Key)) {
-			currentSprintKey = sprintInputMapping[i].Key;
-		}
-	}
-
-	TArray<FInputAxisKeyMapping> forwardInputMapping = this->GetWorld()->GetFirstPlayerController()->PlayerInput->GetKeysForAxis(TEXT("ForwardKey"));
-	for (int i = 0; i < forwardInputMapping.Num(); i++) {
-
-		if (this->GetWorld()->GetFirstPlayerController()->IsInputKeyDown(forwardInputMapping[i].Key)) {
-			currentForwardKey = forwardInputMapping[i].Key; //this is either W or S.
-		}
-	}
 }
 
 // Called every frame
@@ -152,7 +138,7 @@ void AplayerCharacter::Tick(float DeltaTime) {
 		sprintPressed = false;
 	}
 
-	//UE_LOG(LogTemp, Log, TEXT("%s"), *jumpRayReturn.GetActor()->GetName());
+	//UE_LOG(LogTemp, Log, TEXT("%s"), jumpCastBool ? TEXT("true") : TEXT("false"));
 
 }
 
@@ -192,6 +178,14 @@ void AplayerCharacter::ForwardKeyPressed(float inputValue) {
 	else {
 		GetCharacterMovement()->MaxWalkSpeed = 500;
 	}
+
+	TArray<FInputAxisKeyMapping> forwardInputMapping = this->GetWorld()->GetFirstPlayerController()->PlayerInput->GetKeysForAxis(TEXT("ForwardKey"));
+	for (int i = 0; i < forwardInputMapping.Num(); i++) {
+
+		if (this->GetWorld()->GetFirstPlayerController()->IsInputKeyDown(forwardInputMapping[i].Key)) {
+			currentForwardKey = forwardInputMapping[i].Key; //this is either W or S.
+		}
+	}
 }
 
 void AplayerCharacter::strafeKeyPressed(float inputValue) {
@@ -209,10 +203,16 @@ void AplayerCharacter::MouseX(float inputValue) {
 
 void AplayerCharacter::SprintKeyPressed() {
 	sprintPressed = true;
-	UE_LOG(LogTemp, Log, TEXT("%s"), sprintPressed ? TEXT("true") : TEXT("False"));
+	//UE_LOG(LogTemp, Log, TEXT("%s"), sprintPressed ? TEXT("true") : TEXT("False"));
+	TArray<FInputActionKeyMapping> sprintInputMapping = this->GetWorld()->GetFirstPlayerController()->PlayerInput->GetKeysForAction(TEXT("sprintKey"));
+	for (int i = 0; i < sprintInputMapping.Num(); i++) {
+
+		if (this->GetWorld()->GetFirstPlayerController()->IsInputKeyDown(sprintInputMapping[i].Key)) {
+			currentSprintKey = sprintInputMapping[i].Key;
+
+		}
+	}
 }
-
-
 
 void AplayerCharacter::SprintKeyReleased() {
 	sprintPressed = false;
