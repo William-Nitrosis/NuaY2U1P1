@@ -28,11 +28,14 @@ public:
 	float mouseXValue;
 	FRotator rawInput;
 	FRotator rawInputX;
-	float sens;
 	bool firstPerson = false;
 	int jumpCount = 0;
 	FKey currentSprintKey;
 	FKey currentForwardKey;
+	float crouchAdjustHeight;
+	float crouchAmount = 2;
+	float mouseWheelValue;
+
 
 
 
@@ -64,6 +67,7 @@ public:
 	void strafeKeyPressed(float inputValue);
 	void MouseX(float inputValue);
 	void MouseY(float inputValue);
+	void MouseWheel(float inputValue);
 	
 
 	void SprintKeyPressed();
@@ -87,11 +91,22 @@ public:
 	UPROPERTY(EditAnywhere)
 		class UCameraComponent* TP_Camera;
 
+	//UPROPERTY(EditAnywhere)
+		//class UBoxComponent* BodyBox;
+
 	UPROPERTY(EditAnywhere)
 		float jumpPower = 500.f;
 
 	UPROPERTY(EditAnywhere)
 		int jumpLimit = 2;
-	
+
+	UPROPERTY(EditAnywhere)
+		bool sprintToggle = true;
+
+	UPROPERTY(EditAnywhere)
+		float mouseWheelScale = 10.f;
+
+	UPROPERTY(EditAnywhere)
+		float sens = 1;
 
 };

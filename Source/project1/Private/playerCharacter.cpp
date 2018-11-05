@@ -41,6 +41,9 @@ AplayerCharacter::AplayerCharacter() {
 	FP_Camera->PostProcessSettings.MotionBlurMax = 0.f;
 	FP_Camera->PostProcessSettings.bOverride_MotionBlurPerObjectSize = 0;
 	FP_Camera->PostProcessSettings.MotionBlurPerObjectSize = 0.f;
+
+	// body geom
+	//BodyBox = CreateDefaultSubobject<UBoxComponent>(TEXT("BodyBox"));
 	
 	GetCharacterMovement()->AirControl = 1.f;
 
@@ -68,9 +71,8 @@ void AplayerCharacter::BeginPlay() {
 	movementDirection = FVector(0.0f, 0.0f, 0.0f);
 
 	ActivateCam();
-	sens = 1;
 
-
+	crouchAdjustHeight = GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight() / 2;
 }
 
 // Called every frame
@@ -124,13 +126,13 @@ void AplayerCharacter::Tick(float DeltaTime) {
 	if (jumpCastBool) {
 		jumpCount = 1;
 
-		if (this->GetWorld()->GetFirstPlayerController()->GetInputKeyTimeDown(currentSprintKey) > 0.1f) {
+		if (this->GetWorld()->GetFirstPlayerController()->GetInputKeyTimeDown(currentSprintKey) > 0.05f) {
 			sprintPressed = true;
-		} else {
+		}
+		else if (sprintToggle == false) {
 			sprintPressed = false;
 		}
-	}
-	else {
+	} else {
 		sprintPressed = false;
 	}
 
@@ -149,6 +151,8 @@ void AplayerCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerIn
 
 	PlayerInputComponent->BindAxis("MouseY", this, &AplayerCharacter::MouseY);
 	PlayerInputComponent->BindAxis("MouseX", this, &AplayerCharacter::MouseX);
+
+	PlayerInputComponent->BindAxis("MouseWheel", this, &AplayerCharacter::MouseWheel);
 
 	PlayerInputComponent->BindAction("sprintKey", IE_Pressed, this, &AplayerCharacter::SprintKeyPressed);
 	PlayerInputComponent->BindAction("sprintKey", IE_Released, this, &AplayerCharacter::SprintKeyReleased);
@@ -200,6 +204,22 @@ void AplayerCharacter::MouseX(float inputValue) {
 	mouseXValue = inputValue;
 }
 
+void AplayerCharacter::MouseWheel(float inputValue) {
+	mouseWheelValue = inputValue;
+
+	FVector springDistance = TP_Camera->GetComponentLocation() - SpringArm->GetComponentLocation();	
+	float springLength = springDistance.Size();
+
+	if (springLength - (mouseWheelValue * mouseWheelScale) < 160 || springLength - (mouseWheelValue * mouseWheelScale) > 350) {
+
+	}
+	else {
+		SpringArm->TargetArmLength -= (mouseWheelValue * mouseWheelScale);
+	}
+	   
+	//UE_LOG(LogTemp, Log, TEXT("%f"), springLength);
+}
+
 
 void AplayerCharacter::SprintKeyPressed() {
 	sprintPressed = true;
@@ -215,18 +235,29 @@ void AplayerCharacter::SprintKeyPressed() {
 }
 
 void AplayerCharacter::SprintKeyReleased() {
-	sprintPressed = false;
-	UE_LOG(LogTemp, Log, TEXT("%s"), sprintPressed ? TEXT("true") : TEXT("False"));
+	if (forwardValue > 0.3) {
+		sprintPressed = true;
+	} else {
+		sprintPressed = false;
+	}
+	//UE_LOG(LogTemp, Log, TEXT("%s"), sprintPressed ? TEXT("true") : TEXT("False"));
 }
 
 void AplayerCharacter::CrouchKeyPressed() {
 	crouchPressed = true;
-	UE_LOG(LogTemp, Log, TEXT("%s"), crouchPressed ? TEXT("true") : TEXT("False"));
+	sprintPressed = false;
+	//UE_LOG(LogTemp, Log, TEXT("%s"), crouchPressed ? TEXT("true") : TEXT("False"));
+
+	GetCapsuleComponent()->SetCapsuleHalfHeight(GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight() / crouchAmount);
+	GetCapsuleComponent()->AddLocalOffset(FVector(0.f, 0.f, -crouchAdjustHeight));
 }
 
 void AplayerCharacter::CrouchKeyReleased() {
 	crouchPressed = false;
-	UE_LOG(LogTemp, Log, TEXT("%s"), crouchPressed ? TEXT("true") : TEXT("False"));
+	//UE_LOG(LogTemp, Log, TEXT("%s"), crouchPressed ? TEXT("true") : TEXT("False"));
+
+	GetCapsuleComponent()->SetCapsuleHalfHeight(GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight() * crouchAmount);
+	GetCapsuleComponent()->AddLocalOffset(FVector(0.f, 0.f, crouchAdjustHeight));
 }
 
 void AplayerCharacter::ToggleCameraPressed() {
