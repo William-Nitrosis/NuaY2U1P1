@@ -20,10 +20,12 @@ public:
 	FVector movementDirection;
 	FVector jumpRayStart;
 	FVector jumpRayEnd;
+	FVector jumpAnimRayEnd;
 	ECollisionChannel collisionChannel;
 	bool sprintPressed = false;
 	bool crouchPressed = false;
 	bool jumpCastBool = false;
+	bool isJumpingAnim = false;
 	float forwardValue;
 	float strafeValue;
 	float mouseYValue;

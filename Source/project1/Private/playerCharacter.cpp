@@ -128,18 +128,18 @@ void AplayerCharacter::Tick(float DeltaTime) {
 	AddMovementInput(movementDirection, 1.0f, false);
 	
 	//Re-initialize hit info
-	TArray jumpRayReturn(ForceInit);
+	FHitResult jumpRayReturn(ForceInit);
 
 	jumpRayStart = GetCapsuleComponent()->GetComponentLocation();
 	jumpRayEnd = FVector(GetCapsuleComponent()->GetComponentLocation() + FVector(0.f, 0.f, ((0 - GetCapsuleComponent()->GetScaledCapsuleHalfHeight() - 22))));
+	jumpAnimRayEnd = FVector(GetCapsuleComponent()->GetComponentLocation() + FVector(0.f, 0.f, ((0 - GetCapsuleComponent()->GetScaledCapsuleHalfHeight() - 70))));
 	collisionChannel = ECollisionChannel::ECC_Visibility;
 
-	jumpCastBool = GetWorld()->SweepMultiByChannel(jumpRayReturn, jumpRayStart, jumpRayEnd, collisionChannel);
+	jumpCastBool = GetWorld()->LineTraceSingleByChannel(jumpRayReturn, jumpRayStart, jumpRayEnd, collisionChannel);
+	isJumpingAnim = GetWorld()->LineTraceSingleByChannel(jumpRayReturn, jumpRayStart, jumpAnimRayEnd, collisionChannel);
 
 
 	if (jumpCastBool) {
-
-		this->character_anim_instance->isJumping = false;
 
 		jumpCount = 1;
 
@@ -151,11 +151,16 @@ void AplayerCharacter::Tick(float DeltaTime) {
 		}
 	} else {
 		sprintPressed = false;
-		this->character_anim_instance->isJumping = true;
 	}
 
 	if (0.1f <= this->InputComponent->GetAxisValue(FName(TEXT("ForwardKey")))) {} else {
 		sprintPressed = false;
+	}
+
+	if (isJumpingAnim) {
+		this->character_anim_instance->isJumping = false;
+	} else {
+		this->character_anim_instance->isJumping = true;
 	}
 
 	//UE_LOG(LogTemp, Log, TEXT("%s"), jumpCastBool ? TEXT("true") : TEXT("false"));
