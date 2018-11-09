@@ -53,6 +53,10 @@ AplayerCharacter::AplayerCharacter() {
 
 	this->GetCapsuleComponent()->SetVisibility(true);
 	this->GetCapsuleComponent()->SetHiddenInGame(false);
+	this->GetCapsuleComponent()->SetCapsuleHalfHeight(90.f);
+
+	this->GetMesh()->SetRelativeLocation(FVector(0.f, 0.f, -89.f));
+	//this->GetMesh()->SetRelativeRotation(FRotator(0.f, -90.f, 0.f));
 }
 
 
@@ -73,6 +77,9 @@ void AplayerCharacter::BeginPlay() {
 	ActivateCam();
 
 	crouchAdjustHeight = GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight() / 2;
+
+
+	character_anim_instance = Cast<UCharacterAnimInstance>(this->GetMesh()->GetAnimInstance());
 }
 
 // Called every frame
@@ -103,7 +110,13 @@ void AplayerCharacter::Tick(float DeltaTime) {
 	tempInputX.Roll = 0.f;
 	tempInputX.Pitch = 0.f;
 
+	FRotator tempInputXAdj = FP_Camera->GetComponentRotation();
+	tempInputXAdj.Roll = 0.f;
+	tempInputXAdj.Pitch = 0.f;
+	tempInputXAdj.Yaw -= 90.f;
+
 	ForwardArrow->SetRelativeRotation(tempInputX);
+	GetMesh()->SetRelativeRotation(tempInputXAdj);
 
 	FVector forward = ForwardArrow->GetForwardVector() * forwardValue;
 	FVector strafe = ForwardArrow->GetRightVector() * strafeValue;
@@ -115,15 +128,19 @@ void AplayerCharacter::Tick(float DeltaTime) {
 	AddMovementInput(movementDirection, 1.0f, false);
 	
 	//Re-initialize hit info
-	FHitResult jumpRayReturn(ForceInit);
+	TArray jumpRayReturn(ForceInit);
 
 	jumpRayStart = GetCapsuleComponent()->GetComponentLocation();
 	jumpRayEnd = FVector(GetCapsuleComponent()->GetComponentLocation() + FVector(0.f, 0.f, ((0 - GetCapsuleComponent()->GetScaledCapsuleHalfHeight() - 22))));
 	collisionChannel = ECollisionChannel::ECC_Visibility;
 
-	jumpCastBool = GetWorld()->LineTraceSingleByChannel(jumpRayReturn, jumpRayStart, jumpRayEnd, collisionChannel);
+	jumpCastBool = GetWorld()->SweepMultiByChannel(jumpRayReturn, jumpRayStart, jumpRayEnd, collisionChannel);
+
 
 	if (jumpCastBool) {
+
+		this->character_anim_instance->isJumping = false;
+
 		jumpCount = 1;
 
 		if (this->GetWorld()->GetFirstPlayerController()->GetInputKeyTimeDown(currentSprintKey) > 0.05f) {
@@ -134,6 +151,7 @@ void AplayerCharacter::Tick(float DeltaTime) {
 		}
 	} else {
 		sprintPressed = false;
+		this->character_anim_instance->isJumping = true;
 	}
 
 	if (0.1f <= this->InputComponent->GetAxisValue(FName(TEXT("ForwardKey")))) {} else {
@@ -173,14 +191,17 @@ void AplayerCharacter::ForwardKeyPressed(float inputValue) {
 
 	// Check if moving forward, sprinting and not crouching
 	if (inputValue > 0 && sprintPressed && !crouchPressed) {
-		GetCharacterMovement()->MaxWalkSpeed = 1000;
+		GetCharacterMovement()->MaxWalkSpeed = 750;
 		
 	}
 	else if (crouchPressed) {
 		GetCharacterMovement()->MaxWalkSpeed = 250;
 	}
-	else {
+	else if (inputValue > 0) {
 		GetCharacterMovement()->MaxWalkSpeed = 500;
+	}
+	else {
+		GetCharacterMovement()->MaxWalkSpeed = 400;
 	}
 
 	TArray<FInputAxisKeyMapping> forwardInputMapping = this->GetWorld()->GetFirstPlayerController()->PlayerInput->GetKeysForAxis(TEXT("ForwardKey"));

@@ -5,6 +5,8 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "CharacterAnimInstance.h"
+
 #include "playerCharacter.generated.h"
 
 
@@ -35,6 +37,9 @@ public:
 	float crouchAdjustHeight;
 	float crouchAmount = 2;
 	float mouseWheelValue;
+
+
+	UCharacterAnimInstance * character_anim_instance;
 
 
 
