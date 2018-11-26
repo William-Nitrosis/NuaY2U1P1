@@ -16,6 +16,14 @@ class PROJECT1_API UCharacterAnimInstance : public UAnimInstance
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	bool isJumping;
+	bool isJumpingDown;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool isJumpingUp;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float movementAxisForward;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float movementAxisSide;
 };

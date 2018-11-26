@@ -11,7 +11,7 @@
 
 
 UCLASS()
-class PROJECT1_API AplayerCharacter : public ACharacter {
+class PROJECT1_API AplayerCharacter : public ACharacter{
 	GENERATED_BODY()
 	
 public:	
@@ -20,7 +20,9 @@ public:
 	FVector movementDirection;
 	FVector jumpRayStart;
 	FVector jumpRayEnd;
+	FVector jumpCapEnd;
 	FVector jumpAnimRayEnd;
+	FCollisionShape MyColCap;
 	ECollisionChannel collisionChannel;
 	bool sprintPressed = false;
 	bool crouchPressed = false;

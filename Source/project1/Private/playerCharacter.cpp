@@ -24,7 +24,7 @@ AplayerCharacter::AplayerCharacter() {
 
 	TP_Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("TP_Camera"));
 	TP_Camera->AttachToComponent(SpringArm, FAttachmentTransformRules::KeepRelativeTransform);
-	TP_Camera->SetRelativeLocation(FVector(20.f, 40.f, 0.f));
+	TP_Camera->SetRelativeLocation(FVector(/*20.f*/0, 40.f, 0.f));
 	TP_Camera->PostProcessSettings.bOverride_MotionBlurAmount = 0;
 	TP_Camera->PostProcessSettings.MotionBlurAmount = 0.f;
 	TP_Camera->PostProcessSettings.bOverride_MotionBlurMax = 0;
@@ -75,23 +75,26 @@ void AplayerCharacter::BeginPlay() {
 	movementDirection = FVector(0.0f, 0.0f, 0.0f);
 
 	ActivateCam();
-
+	
 	crouchAdjustHeight = GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight() / 2;
 
 
 	character_anim_instance = Cast<UCharacterAnimInstance>(this->GetMesh()->GetAnimInstance());
+
+	collisionChannel = ECollisionChannel::ECC_Visibility;
+	MyColCap = FCollisionShape::MakeCapsule(34.f, 0.f);
 }
 
 // Called every frame
 void AplayerCharacter::Tick(float DeltaTime) {
 	Super::Tick(DeltaTime);
 
+	UE_LOG(LogTemp, Log, TEXT("Y: %f X: %f"), mouseYValue, mouseXValue);
+
 	rawInput = FRotator(mouseYValue, mouseXValue, 0.0f);
 	rawInputX = FRotator(0.0f, mouseXValue, 0.0f);
-	
 
 	FRotator sensInput = (rawInput * sens);
-
 
 	if (sensInput.Pitch + FP_Camera->GetComponentRotation().Pitch > 85) {
 		sensInput.Pitch = 0;
@@ -101,22 +104,24 @@ void AplayerCharacter::Tick(float DeltaTime) {
 		sensInput.Pitch = 0;
 	}
 
-	FP_Camera->AddRelativeRotation(sensInput);
-	FP_Camera->SetRelativeRotation(FRotator(FP_Camera->GetComponentRotation().Pitch, FP_Camera->GetComponentRotation().Yaw, 0));
 
-	SpringArm->SetRelativeRotation(FRotator(FP_Camera->GetComponentRotation().Pitch, FP_Camera->GetComponentRotation().Yaw, 0));
+	//FP_Camera->AddRelativeRotation(sensInput);
+	//FP_Camera->SetRelativeRotation(FRotator(FP_Camera->GetComponentRotation().Pitch, FP_Camera->GetComponentRotation().Yaw, 0));
 
-	FRotator tempInputX = FP_Camera->GetComponentRotation();
-	tempInputX.Roll = 0.f;
-	tempInputX.Pitch = 0.f;
+	//SpringArm->SetRelativeRotation(FRotator(FP_Camera->GetComponentRotation().Pitch, FP_Camera->GetComponentRotation().Yaw, 0));
 
-	FRotator tempInputXAdj = FP_Camera->GetComponentRotation();
+	//FRotator tempInputX = FP_Camera->GetComponentRotation();
+	//tempInputX.Roll = 0.f;
+	//tempInputX.Pitch = 0.f;
+
+	/*FRotator tempInputXAdj = FP_Camera->GetComponentRotation();
 	tempInputXAdj.Roll = 0.f;
 	tempInputXAdj.Pitch = 0.f;
-	tempInputXAdj.Yaw -= 90.f;
+	tempInputXAdj.Yaw -= 90.f;*/
 
-	ForwardArrow->SetRelativeRotation(tempInputX);
-	GetMesh()->SetRelativeRotation(tempInputXAdj);
+	//ForwardArrow->SetRelativeRotation(tempInputX);
+	//GetMesh()->SetRelativeRotation(tempInputXAdj);
+	//GetMesh()->SetRelativeRotation(tempInputX); // Aaron code
 
 	FVector forward = ForwardArrow->GetForwardVector() * forwardValue;
 	FVector strafe = ForwardArrow->GetRightVector() * strafeValue;
@@ -126,22 +131,31 @@ void AplayerCharacter::Tick(float DeltaTime) {
 	movementDirection = normal * GetCharacterMovement()->MaxWalkSpeed;
 
 	AddMovementInput(movementDirection, 1.0f, false);
-	
+
+
 	//Re-initialize hit info
+	TArray<FHitResult> jumpCapReturn;
 	FHitResult jumpRayReturn(ForceInit);
 
 	jumpRayStart = GetCapsuleComponent()->GetComponentLocation();
 	jumpRayEnd = FVector(GetCapsuleComponent()->GetComponentLocation() + FVector(0.f, 0.f, ((0 - GetCapsuleComponent()->GetScaledCapsuleHalfHeight() - 22))));
-	jumpAnimRayEnd = FVector(GetCapsuleComponent()->GetComponentLocation() + FVector(0.f, 0.f, ((0 - GetCapsuleComponent()->GetScaledCapsuleHalfHeight() - 70))));
-	collisionChannel = ECollisionChannel::ECC_Visibility;
+	jumpCapEnd = FVector(GetCapsuleComponent()->GetComponentLocation() + FVector(0.f, 0.f, ((0 - GetCapsuleComponent()->GetScaledCapsuleHalfHeight()))));
+	jumpAnimRayEnd = FVector(GetCapsuleComponent()->GetComponentLocation() + FVector(0.f, 0.f, ((0 - GetCapsuleComponent()->GetScaledCapsuleHalfHeight() - 100))));
 
-	jumpCastBool = GetWorld()->LineTraceSingleByChannel(jumpRayReturn, jumpRayStart, jumpRayEnd, collisionChannel);
+	/*const FName TraceTag("MyTraceTag");
+	GetWorld()->DebugDrawTraceTag = TraceTag;
+	FCollisionQueryParams CollisionParams;
+	CollisionParams.TraceTag = TraceTag;*/
+	//jumpCastBool = GetWorld()->LineTraceSingleByChannel(jumpRayReturn, jumpRayStart, jumpRayEnd, collisionChannel);
+
+	jumpCastBool = GetWorld()->SweepMultiByChannel(jumpCapReturn, jumpCapEnd, jumpCapEnd, FQuat::Identity, collisionChannel, MyColCap);
 	isJumpingAnim = GetWorld()->LineTraceSingleByChannel(jumpRayReturn, jumpRayStart, jumpAnimRayEnd, collisionChannel);
 
 
 	if (jumpCastBool) {
 
 		jumpCount = 1;
+		this->character_anim_instance->isJumpingUp = false;
 
 		if (this->GetWorld()->GetFirstPlayerController()->GetInputKeyTimeDown(currentSprintKey) > 0.05f) {
 			sprintPressed = true;
@@ -151,6 +165,7 @@ void AplayerCharacter::Tick(float DeltaTime) {
 		}
 	} else {
 		sprintPressed = false;
+		this->character_anim_instance->isJumpingUp = true;
 	}
 
 	if (0.1f <= this->InputComponent->GetAxisValue(FName(TEXT("ForwardKey")))) {} else {
@@ -158,9 +173,9 @@ void AplayerCharacter::Tick(float DeltaTime) {
 	}
 
 	if (isJumpingAnim) {
-		this->character_anim_instance->isJumping = false;
+		this->character_anim_instance->isJumpingDown = false;
 	} else {
-		this->character_anim_instance->isJumping = true;
+		this->character_anim_instance->isJumpingDown = true;
 	}
 
 	//UE_LOG(LogTemp, Log, TEXT("%s"), jumpCastBool ? TEXT("true") : TEXT("false"));
@@ -193,6 +208,7 @@ void AplayerCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerIn
 
 void AplayerCharacter::ForwardKeyPressed(float inputValue) {
 	forwardValue = inputValue;
+	this->character_anim_instance->movementAxisForward = inputValue;
 
 	// Check if moving forward, sprinting and not crouching
 	if (inputValue > 0 && sprintPressed && !crouchPressed) {
@@ -220,6 +236,7 @@ void AplayerCharacter::ForwardKeyPressed(float inputValue) {
 
 void AplayerCharacter::strafeKeyPressed(float inputValue) {
 	strafeValue = inputValue;
+	this->character_anim_instance->movementAxisSide = inputValue;
 }
 
 void AplayerCharacter::MouseY(float inputValue) {
