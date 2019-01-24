@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Kismet/KismetMathLibrary.h"
-#include "CharacterAnimInstance.h"
+//#include "CharacterAnimInstance.h"
 
 #include "playerCharacter.generated.h"
 
@@ -43,7 +43,7 @@ public:
 	float mouseWheelValue;
 
 
-	UCharacterAnimInstance * character_anim_instance;
+	//UCharacterAnimInstance * character_anim_instance;
 
 
 
